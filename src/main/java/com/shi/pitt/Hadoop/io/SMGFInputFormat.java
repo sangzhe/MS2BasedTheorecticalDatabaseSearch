@@ -1,6 +1,5 @@
 package com.shi.pitt.Hadoop.io;
 
-import com.shi.pitt.MS2Search.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -12,18 +11,16 @@ import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.LineReader;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Created by sangzhe on 2018/3/21.
  */
-public class SMGFInputFormat extends TextInputFormat {
+public class SMGFInputFormat extends FileInputFormat {
 
     private CompressionCodecFactory compressionCodecs = null;
     private long start;
@@ -38,12 +35,12 @@ public class SMGFInputFormat extends TextInputFormat {
     private Text startSpectrum = new Text("BEGIN IONS");
     private Text endSpectrum = new Text("END IONS");
 
-    private Map<Long,List<Long>> ClusterInfo;
+    public RecordReader createRecordReader(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+        return new SMGFReader();
+    }
+
 
     public class SMGFReader extends RecordReader{
-        private void loadClusterInfo(String clusterInfo){
-            ClusterInfo = Utils.readClusterInfoFromString(clusterInfo);
-        }
 
         public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
             FileSplit split = (FileSplit)inputSplit;
@@ -82,18 +79,58 @@ public class SMGFInputFormat extends TextInputFormat {
                 start += input.readLine(buffer);
             }
 
-            key.clear();
+            key.set(split.getPath().getName());
             value.clear();
 
             pos = 0;
 
-
-            loadClusterInfo(configuration.get("ClusterInfo"));
-
         }
 
         public boolean nextKeyValue() throws IOException, InterruptedException {
-            return false;
+            int newSize = 0;
+            while (pos < start) {
+                newSize = input.readLine(buffer);
+                // we are done
+                if (newSize == 0) {
+                    key = null;
+                    value = null;
+                    return false;
+                }
+                pos = realFile.getPos();
+            }
+
+            newSize = input.readLine(buffer);
+            while (newSize > 0) {
+                if (startSpectrum.equals(buffer)) {
+                    break;
+                }
+                newSize = input.readLine(buffer);
+            }
+
+            if (newSize == 0) {
+                key = null;
+                value = null;
+                return false;
+            }
+
+            value.clear();
+
+            while (newSize > 0) {
+                value.append(buffer.getBytes(), 0, buffer.getLength());
+                value.append(endLine.getBytes(), 0, endLine.getLength());
+                if (endSpectrum.equals(buffer)) {
+                    break;
+                }
+                newSize = input.readLine(buffer);
+            }
+
+            if (newSize == 0) {
+                key = null;
+                value = null;
+                return false;
+            } else {
+                return true;
+            }
         }
 
         public Object getCurrentKey() throws IOException, InterruptedException {
@@ -105,11 +142,15 @@ public class SMGFInputFormat extends TextInputFormat {
         }
 
         public float getProgress() throws IOException, InterruptedException {
-            return 0;
+            long totalBytes = end - start;
+            long totalHandled = pos - start;
+            return ((float) totalHandled) / totalBytes;
         }
 
         public void close() throws IOException {
-
+            if (input != null) {
+                input.close();
+            }
         }
     }
 

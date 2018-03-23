@@ -9,17 +9,25 @@ import java.io.IOException;
 /**
  * Created by sangzhe on 2018/3/22.
  */
-public class PrecursorMassKey implements WritableComparable {
+public class IntegerPrecursorMassKey implements WritableComparable<IntegerPrecursorMassKey> {
 
-    private final double PrecursorMass;
+    private final double ActualPrecursorMass;
+    private final int PrecursorMass;
     private final String PrecursorMassKey;
 
-    public PrecursorMassKey(double precursorMass, String precursorMassKey) {
-        PrecursorMass = precursorMass;
-        PrecursorMassKey = precursorMassKey;
+
+
+
+    public IntegerPrecursorMassKey(double precursorMass) {
+        ActualPrecursorMass = precursorMass;
+        PrecursorMass = (int)precursorMass;
+        PrecursorMassKey = Integer.toString(PrecursorMass);
     }
 
-    public double getPrecursorMass() {
+
+    public double getActualPrecursorMass(){return ActualPrecursorMass;}
+
+    public int getPrecursorMass() {
         return PrecursorMass;
     }
 
@@ -38,19 +46,20 @@ public class PrecursorMassKey implements WritableComparable {
         return obj != null && getClass() == obj.getClass() && toString().equals(obj.toString());
     }
 
-
-
-    public int compareTo(Object o) {
-        return toString().compareTo(o.toString());
+    public int compareTo(IntegerPrecursorMassKey o) {
+        return Double.compare(getPrecursorMass(),o.getPrecursorMass());
     }
 
+
     public void write(DataOutput dataOutput) throws IOException {
-        dataOutput.writeDouble(PrecursorMass);
+        dataOutput.writeInt(PrecursorMass);
+        dataOutput.writeDouble(ActualPrecursorMass);
         dataOutput.writeUTF(PrecursorMassKey);
 
     }
 
     public void readFields(DataInput dataInput) throws IOException {
+        dataInput.readInt();
         dataInput.readDouble();
         dataInput.readUTF();
     }

@@ -6,16 +6,32 @@ import java.util.List;
  * Created by sangzhe on 2018/3/2.
  */
 public class Spectrum {
-    public long spectrumId;
-    public double Mass;
-    public List<Double> reporterMass;
-    public List<Double> fragmentsMass;
+    private long spectrumId;
+    private double Mass;
+    private List<Double> reporterMass;
+    private List<Double> fragmentsMass;
 
     public Spectrum(long spectrumId, double mass, List<Double> reporterMass, List<Double> fragmentsMass) {
         this.spectrumId = spectrumId;
         this.Mass = mass;
         this.reporterMass = reporterMass;
         this.fragmentsMass = fragmentsMass;
+    }
+
+    public long getSpectrumId() {
+        return spectrumId;
+    }
+
+    public double getMass() {
+        return Mass;
+    }
+
+    public List<Double> getReporterMass() {
+        return reporterMass;
+    }
+
+    public List<Double> getFragmentsMass() {
+        return fragmentsMass;
     }
 
     @Override

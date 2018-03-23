@@ -1,26 +1,38 @@
 package com.shi.pitt.Hadoop.mapper;
 
+import com.shi.pitt.Hadoop.key.IntegerPrecursorMassKey;
 import com.shi.pitt.MS2Search.Spectrum;
 import com.shi.pitt.MS2Search.Utils;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
 /**
  * Created by sangzhe on 2018/3/16.
  */
-public class SpectrumMapper  implements Mapper<Text,Text,Text,Text> {
-
-    private String mapTaskId;
-    private String inputFile;
-
-    public void map(Text text, Text text2, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
-        Spectrum spectrum = Utils.parseSpectrumFromString(text2.toString());
+public class SpectrumMapper extends Mapper<Text,Text,Text,Text> {
 
 
-        Text val = new Text(spectrum.toString());
-        outputCollector.collect(new Text("1"),val);
+    public void map(Text key, Text value, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
+
+        // check the validity of the input
+        if (key.toString().length() == 0 || value.toString().length() == 0)
+            return;
+
+        Spectrum spectrum = Utils.parseSpectrumFromString(value.toString());
+        double mass = spectrum.getMass();
+        reporter.getCounter("Spectrua","TotalNumber").increment(1);
+
+        IntegerPrecursorMassKey massKey = new IntegerPrecursorMassKey(mass);
+        outputCollector.collect(new Text(massKey.toString()),value);
+
+        String PrecursorCounter = massKey.toString();
+
+        reporter.getCounter("PrecursorMassInterger",PrecursorCounter).increment(1);
 
     }
 

@@ -2,7 +2,6 @@ package com.shi.pitt.MS2Search;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by sangzhe on 2018/3/2.
@@ -10,6 +9,13 @@ import java.util.Map;
 public class Utils {
 
     public static boolean compareMass(double Mass1,double Mass2,int tolerance){
+        if (Math.abs(Mass1-Mass2)<=tolerance)
+            return true;
+        return false;
+    }
+
+
+    public static boolean compareFragmentMass(double Mass1,double Mass2,int tolerance){
         double bigger =Mass1;
         if(Mass1 < Mass2){
             bigger = Mass2;
@@ -21,18 +27,31 @@ public class Utils {
         return false;
     }
 
-
     public static boolean compareSpectrum(List<Double> spectrum1, List<Double> spectrum2, int tolerance, float matchRatio){
         int HitNumber=0;
         int BaseNumber = spectrum1.size();
         for(double fragment1:spectrum1){
             for(double fragment2:spectrum2){
-                if(compareMass(fragment1,fragment2,tolerance))
+                if(compareFragmentMass(fragment1,fragment2,tolerance)){
                     HitNumber++;
+                }else if(fragment2>fragment1){
+                    //fragment2 does not match fragment1, and the following will also be matched;
+                    // continue compare next fragment1
+                    break;
+                }
             }
         }
         return HitNumber>matchRatio*BaseNumber;
 //        return HitNumber>=2;
+    }
+
+    public static List<Spectrum> parseSpectraFromString(String spectraStr){
+        String[] specrtumStr = spectraStr.split("\n");
+        List<Spectrum> spectra = new ArrayList<Spectrum>(specrtumStr.length);
+        for(String str:specrtumStr){
+            spectra.add(parseSpectrumFromString(str));
+        }
+        return spectra;
     }
 
     public static Spectrum parseSpectrumFromString(String spectrumStr){
@@ -50,7 +69,5 @@ public class Utils {
         return new Spectrum(spectrumId,mass,reporters,fragments);
     }
 
-    public static Map<Long,List<Long>> readClusterInfoFromString(String str){
-        return null;
-    }
+
 }
