@@ -2,6 +2,7 @@ package com.shi.pitt.Hadoop;
 
 import com.shi.pitt.Hadoop.combiner.SpectrumMassCombiner;
 import com.shi.pitt.Hadoop.io.SMGFInputFormat;
+import com.shi.pitt.Hadoop.key.IntegerPrecursorMassKey;
 import com.shi.pitt.Hadoop.mapper.SpectrumMapper;
 import com.shi.pitt.Hadoop.partitioner.PrecursorMassPartitioner;
 import com.shi.pitt.Hadoop.reducer.SpectraGroupComparisonReducer;
@@ -9,6 +10,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -43,6 +45,11 @@ public class SearchJob extends Configured implements Tool {
         Job job = new Job(configuration);
         job.setJarByClass(getClass());
 
+        job.setNumReduceTasks(30);
+
+        configuration.set("Fragment.Tolerance","20");
+        configuration.set("Fragment.MatchRatio","0.5");
+        configuration.set("Mass.Tolerance","20");
 
 
         // configure input and output path
@@ -68,9 +75,9 @@ public class SearchJob extends Configured implements Tool {
 
 
         // set output class
-        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputKeyClass(IntegerPrecursorMassKey.class);
         job.setMapOutputValueClass(Text.class);
-        job.setOutputKeyClass(Text.class);
+        job.setOutputKeyClass(LongWritable.class);
         job.setOutputValueClass(Text.class);
 
         boolean completion = job.waitForCompletion(true);

@@ -46,7 +46,7 @@ public class Utils {
     }
 
     public static List<Spectrum> parseSpectraFromString(String spectraStr){
-        String[] specrtumStr = spectraStr.split("\n");
+        String[] specrtumStr = spectraStr.split("END IONS\n");
         List<Spectrum> spectra = new ArrayList<Spectrum>(specrtumStr.length);
         for(String str:specrtumStr){
             spectra.add(parseSpectrumFromString(str));
@@ -55,18 +55,32 @@ public class Utils {
     }
 
     public static Spectrum parseSpectrumFromString(String spectrumStr){
-        String[] fields = spectrumStr.split("|");
-        Long spectrumId = Long.parseLong(fields[0]);
-        Double mass = Double.parseDouble(fields[1]);
-        List<Double> reporters = new ArrayList<Double>();
-        for(String r:fields[2].split(",")){
-            reporters.add(Double.parseDouble(r));
+        String[] content = spectrumStr.split("\n");
+        Long Id=0L;
+        Double Mass=0.0;
+        List<Double> fragmentsMass = new ArrayList<Double>();
+        List<Double> reporterMass = new ArrayList<Double>();
+        for(String line:content){
+            if(line.startsWith("ID")){
+                Id = Long.parseLong(line.trim().split("=")[1]);
+            }
+            else if(line.startsWith("SELECTFRAGMENTS")){
+                String[] reprterfragments = line.trim().split("=")[1].split(",");
+                for(String fragment:reprterfragments){
+                    reporterMass.add(Double.parseDouble(fragment));
+                }
+            }
+            else if(line.startsWith("MASS")){
+                Mass=Double.parseDouble(line.trim().split("=")[1]);
+            }
+            else if(line.startsWith("BEGIN") || line.startsWith("END")||line.contains("=") || line.equals("")){
+                continue;
+            }else {
+                fragmentsMass.add((Double.parseDouble(line.trim())));
+            }
         }
-        List<Double> fragments = new ArrayList<Double>();
-        for(String f:fields[3].split(",")){
-            fragments.add(Double.parseDouble(f));
-        }
-        return new Spectrum(spectrumId,mass,reporters,fragments);
+        Spectrum spectrum = new Spectrum(Id,Mass,reporterMass,fragmentsMass);
+        return spectrum;
     }
 
 

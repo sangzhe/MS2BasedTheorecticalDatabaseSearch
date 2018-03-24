@@ -9,13 +9,13 @@ public class Cluster {
     private String clusterId;
     private double mass;
     private List<Spectrum> spectra;
-    private Set<Long> spectraIds;
+    private Set<String> spectraIds;
     private double absErrorRange;
 
     public Cluster(Spectrum spectrum,double tolerance){
         this.clusterId = UUID.randomUUID().toString();
         this.spectra = new ArrayList<Spectrum>();
-        this.spectraIds = new HashSet<Long>();
+        this.spectraIds = new HashSet<String>();
         mass = spectrum.getMass();
         spectra.add(spectrum);
         spectraIds.add(spectrum.getSpectrumId());
@@ -47,7 +47,7 @@ public class Cluster {
         return spectra;
     }
 
-    public Set<Long> getSpectraIds() {
+    public Set<String> getSpectraIds() {
         return spectraIds;
     }
 }

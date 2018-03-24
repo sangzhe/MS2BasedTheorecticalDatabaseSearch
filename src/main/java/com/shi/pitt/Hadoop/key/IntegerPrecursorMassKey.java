@@ -1,5 +1,9 @@
 package com.shi.pitt.Hadoop.key;
 
+
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 import java.io.DataInput;
@@ -11,56 +15,64 @@ import java.io.IOException;
  */
 public class IntegerPrecursorMassKey implements WritableComparable<IntegerPrecursorMassKey> {
 
-    private final double ActualPrecursorMass;
-    private final int PrecursorMass;
-    private final String PrecursorMassKey;
+    private final DoubleWritable ActualPrecursorMass;
+    private final IntWritable PrecursorMass;
+    private final Text PrecursorMassKey;
 
 
-
-
-    public IntegerPrecursorMassKey(double precursorMass) {
-        ActualPrecursorMass = precursorMass;
-        PrecursorMass = (int)precursorMass;
-        PrecursorMassKey = Integer.toString(PrecursorMass);
+    public IntegerPrecursorMassKey() {
+        ActualPrecursorMass = new DoubleWritable();
+        PrecursorMass = new IntWritable();
+        PrecursorMassKey = new Text();
     }
 
-
-    public double getActualPrecursorMass(){return ActualPrecursorMass;}
+    public IntegerPrecursorMassKey(double precursorMass) {
+        ActualPrecursorMass = new DoubleWritable(precursorMass);
+        PrecursorMass = new IntWritable((int)precursorMass);
+        PrecursorMassKey = new Text(Integer.toString((int)precursorMass));
+    }
+    public void set(double precursorMass){
+        ActualPrecursorMass.set(precursorMass);
+        PrecursorMass.set((int)precursorMass);
+        PrecursorMassKey.set(Integer.toString((int)precursorMass));
+    }
+    public double getActualPrecursorMass(){return ActualPrecursorMass.get();}
 
     public int getPrecursorMass() {
-        return PrecursorMass;
+        return PrecursorMass.get();
     }
 
     @Override
     public String toString() {
-        return PrecursorMassKey ;
+        return PrecursorMassKey.toString() ;
     }
 
-    @Override
-    public int hashCode() {
-        return toString().hashCode();
+
+
+    public void write(DataOutput dataOutput) throws IOException {
+        PrecursorMass.write(dataOutput);
+        ActualPrecursorMass.write(dataOutput);
+        PrecursorMassKey.write(dataOutput);
+
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        return obj != null && getClass() == obj.getClass() && toString().equals(obj.toString());
+    public void readFields(DataInput dataInput) throws IOException {
+        PrecursorMass.readFields(dataInput);
+        ActualPrecursorMass.readFields(dataInput);
+        PrecursorMassKey.readFields(dataInput);
     }
 
     public int compareTo(IntegerPrecursorMassKey o) {
         return Double.compare(getPrecursorMass(),o.getPrecursorMass());
     }
 
-
-    public void write(DataOutput dataOutput) throws IOException {
-        dataOutput.writeInt(PrecursorMass);
-        dataOutput.writeDouble(ActualPrecursorMass);
-        dataOutput.writeUTF(PrecursorMassKey);
-
+    @Override
+    public boolean equals(Object obj) {
+        return this.toString().equals(obj.toString());
     }
 
-    public void readFields(DataInput dataInput) throws IOException {
-        dataInput.readInt();
-        dataInput.readDouble();
-        dataInput.readUTF();
+    @Override
+    public int hashCode() {
+        return Integer.valueOf(getPrecursorMass()).hashCode();
     }
 }

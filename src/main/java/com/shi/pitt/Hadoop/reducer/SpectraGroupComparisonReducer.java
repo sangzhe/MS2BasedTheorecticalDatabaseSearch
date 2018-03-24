@@ -1,12 +1,10 @@
 package com.shi.pitt.Hadoop.reducer;
 
+import com.shi.pitt.Hadoop.key.IntegerPrecursorMassKey;
 import com.shi.pitt.MS2Search.Cluster;
 import com.shi.pitt.MS2Search.Spectrum;
 import com.shi.pitt.MS2Search.Utils;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
@@ -15,26 +13,44 @@ import java.util.*;
 /**
  * Created by sangzhe on 2018/3/23.
  */
-public class SpectraGroupComparisonReducer extends Reducer<Text,Text,Text,Text> {
+public class SpectraGroupComparisonReducer extends Reducer<IntegerPrecursorMassKey,Text,Text,Text> {
     private List<Spectrum> allSpectra = new ArrayList<Spectrum>();
     private List<Cluster> clusters = new ArrayList<Cluster>();
-    private int fragmentTolerance;
-    private int massTolerance;
-    private float matchRatio;
+    private int fragmentTolerance = 20;
+    private int massTolerance = 20;
+    private float matchRatio = (float)0.5;
 
-    public void reduce(Text integerPrecursorMassKey, Iterator<Text> iterator, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
 
+    @Override
+    protected void setup(Context context) throws IOException, InterruptedException {
+        super.setup(context);
+//        fragmentTolerance = Integer.parseInt(context.getConfiguration().get("Fragment.Tolerance"));
+//        massTolerance = Integer.parseInt(context.getConfiguration().get("Mass.Tolerance"));
+//        matchRatio = Float.parseFloat(context.getConfiguration().get("Fragment.MatchRatio"));
+    }
+
+    @Override
+    protected void reduce(IntegerPrecursorMassKey key, Iterable<Text> value, Context context) throws IOException, InterruptedException {
+        allSpectra.clear();
+        clusters.clear();
+
+        Iterator<Text> iterator = value.iterator();
         //read all spectra from string
         while(iterator.hasNext()){
             allSpectra.addAll(Utils.parseSpectraFromString(iterator.next().toString()));
         }
         clusterSpectra(allSpectra);
 
-        for(Cluster cluster:clusters){
-            findMatchWithinCluster(cluster,outputCollector);
-        }
 
+        try {
+            for (Cluster cluster : clusters) {
+                findMatchWithinCluster(cluster, context);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
+
 
     private void clusterSpectra(List<Spectrum> spectra){
         // group all spectra more precisely by their mass. eg. use 20ppm
@@ -60,45 +76,35 @@ public class SpectraGroupComparisonReducer extends Reducer<Text,Text,Text,Text> 
 
     }
 
-    private void findMatchWithinCluster(Cluster cluster,OutputCollector<Text, Text> outputCollector){
-        Map<Long,Integer> matchedIds= new HashMap<Long,Integer>();
+    private void findMatchWithinCluster(Cluster cluster,Context context) throws Exception{
+        Map<String,Integer> matchedIds= new HashMap<String,Integer>();
         List<Spectrum> spectra = cluster.getSpectra();
+        if(spectra.size() == 1){
+            context.write(new Text(spectra.get(0).getSpectrumId()), new Text("0"));
+        }
         for(Spectrum spectrum:spectra){
             matchedIds.put(spectrum.getSpectrumId(),0);
         }
         for(int i =0;i<spectra.size();i++){
             Spectrum spectrum = spectra.get(i);
-            long Id = spectrum.getSpectrumId();
+            String Id = spectrum.getSpectrumId();
             List<Double> reporters = spectrum.getReporterMass();
             for(int j = i+1;j<spectra.size();j++){
                 Spectrum other = spectra.get(j);
-                long otherId = other.getSpectrumId();
+                String otherId = other.getSpectrumId();
                 List<Double> otherFragments = other.getFragmentsMass();
                 if(Utils.compareSpectrum(reporters,otherFragments,fragmentTolerance,matchRatio)){
                     matchedIds.put(Id,matchedIds.get(Id)+1);
                 }
             }
         }
-        try {
-            for (HashMap.Entry<Long, Integer> entry : matchedIds.entrySet()) {
-                outputCollector.collect(new Text(entry.getKey().toString()), new Text(entry.getValue().toString()));
-            }
-        }catch (IOException e){
-            e.printStackTrace();
+        for (HashMap.Entry<String, Integer> entry : matchedIds.entrySet()) {
+            context.write(new Text(entry.getKey()), new Text(entry.getValue().toString()));
         }
 
 
 
     }
 
-    public void close() throws IOException {
 
-    }
-
-    public void configure(JobConf jobConf) {
-        fragmentTolerance = Integer.parseInt(jobConf.get("Fragment.Tolerance"));
-        massTolerance = Integer.parseInt(jobConf.get("Mass.Tolerance"));
-        matchRatio = Float.parseFloat(jobConf.get("Fragment.MatchRatio"));
-
-    }
 }

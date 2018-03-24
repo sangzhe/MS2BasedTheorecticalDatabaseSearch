@@ -3,17 +3,17 @@
 <!--
     Distributed mode configuration for Hadoop
     You can test this configuration xml using the command below:
-    hadoop fs -conf conf/hadoop/hadoop-prod-cluster.xml -ls .
+    hadoop fs -conf conf/hadoop/hadoop-aws-cluster.xml -ls .
 -->
 
 <configuration>
     <property>
         <name>fs.default.name</name>
-        <value>hdfs://hadoop-master-03.ebi.ac.uk:54310</value>
+        <value>s3n://your-bucket-name</value>
     </property>
 
     <property>
         <name>mapred.job.tracker</name>
-        <value>hadoop-master-04.ebi.ac.uk:54311</value>
+        <value></value>
     </property>
 </configuration>
